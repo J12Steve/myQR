@@ -68,33 +68,21 @@
     box-shadow: 0 20px 50px rgba(0,0,0,0.55), inset 0 1px 0 rgba(255,255,255,0.08);
   }
 
-  .chip{
-    background: rgba(255,255,255,0.45);
-    border: 1px solid rgba(255,255,255,0.6);
-    backdrop-filter: blur(16px);
-    -webkit-backdrop-filter: blur(16px);
-    transition: all .25s cubic-bezier(.4,0,.2,1);
+  select.select-glass{
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
+    color: inherit;
+    transition: box-shadow .2s ease;
   }
-  html.dark .chip{
-    background: rgba(255,255,255,0.05);
-    border: 1px solid rgba(255,255,255,0.08);
-  }
-  .chip.active{
-    background: linear-gradient(135deg, var(--navy) 0%, var(--navy-2) 100%);
-    border-color: transparent;
-    box-shadow: 0 6px 18px rgba(10,31,68,0.35);
-  }
-
-  .row-card{
-    transition: transform .2s cubic-bezier(.4,0,.2,1), background .2s ease;
-  }
-  .row-card:active{ transform: scale(0.97); }
-  .row-card.selected{
+  select.select-glass:focus{
     box-shadow: 0 0 0 1.5px var(--navy) inset, 0 8px 32px rgba(10,31,68,0.10), inset 0 1px 0 rgba(255,255,255,0.65);
   }
-  html.dark .row-card.selected{
+  html.dark select.select-glass:focus{
     box-shadow: 0 0 0 1.5px #6f93e0 inset, 0 8px 32px rgba(0,0,0,0.45), inset 0 1px 0 rgba(255,255,255,0.06);
   }
+  select.select-glass option{ background:#ffffff; color:#0A1F44; }
+  html.dark select.select-glass option{ background:#0a0d14; color:#EAF0FB; }
 
   .toggle-btn{ transition: transform .3s cubic-bezier(.34,1.56,.64,1); }
   .toggle-btn:active{ transform: scale(0.88) rotate(15deg); }
@@ -144,8 +132,14 @@
       </button>
     </header>
 
-    <!-- Bank selector chips -->
-    <div id="chipRow" class="flex gap-2 overflow-x-auto pb-1 mb-4 fade-in" style="scroll-snap-type:x proximity;"></div>
+    <!-- Account select -->
+    <section class="mb-5 fade-in">
+      <p class="text-[11px] uppercase tracking-wider font-bold opacity-50 mb-3 px-1">Chọn tài khoản</p>
+      <div class="relative">
+        <select id="accountSelect" class="select-glass glass w-full appearance-none rounded-2xl pl-4 pr-11 py-3.5 text-[15px] font-semibold outline-none cursor-pointer"></select>
+        <svg class="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 opacity-50" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+      </div>
+    </section>
 
     <!-- Main QR card -->
     <section class="glass-strong rounded-[28px] p-6 mb-5 fade-in">
@@ -190,12 +184,6 @@
       <p class="text-[10px] opacity-40 mt-2 leading-relaxed">Áp dụng cho tài khoản ngân hàng qua VietQR. Ví điện tử hiển thị mã theo số điện thoại.</p>
     </section>
 
-    <!-- Full list -->
-    <section class="fade-in">
-      <p class="text-[11px] uppercase tracking-wider font-bold opacity-50 mb-3 px-1">Tất cả tài khoản</p>
-      <div id="listWrap" class="flex flex-col gap-2.5"></div>
-    </section>
-
     <footer class="text-center mt-8 mb-2 opacity-30 text-[11px] fade-in">
       Mã QR tạo bởi VietQR.io
     </footer>
@@ -220,8 +208,6 @@
     { id:'zalopay',    name:'ZaloPay',     short:'Ví ZaloPay', account:'0793992017', type:'wallet' },
   ];
 
-  const initials = (n) => n.replace('Bank','').trim().split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
-
   let current = accounts[0];
 
   // ---------- theme ----------
@@ -239,39 +225,23 @@
   applyTheme(prefersDark);
   themeToggle.addEventListener('click', () => applyTheme(!root.classList.contains('dark')));
 
-  // ---------- chips ----------
-  const chipRow = document.getElementById('chipRow');
-  accounts.forEach(a => {
-    const chip = document.createElement('button');
-    chip.className = 'chip shrink-0 px-4 py-2.5 rounded-2xl text-sm font-semibold whitespace-nowrap';
-    chip.style.scrollSnapAlign = 'start';
-    chip.textContent = a.short;
-    chip.dataset.id = a.id;
-    chip.addEventListener('click', () => select(a.id));
-    chipRow.appendChild(chip);
+  // ---------- select dropdown ----------
+  const accountSelect = document.getElementById('accountSelect');
+  const groupLabels = { bank: 'Ngân hàng', wallet: 'Ví điện tử' };
+  Object.entries(groupLabels).forEach(([type, label]) => {
+    const items = accounts.filter(a => a.type === type);
+    if (!items.length) return;
+    const group = document.createElement('optgroup');
+    group.label = label;
+    items.forEach(a => {
+      const opt = document.createElement('option');
+      opt.value = a.id;
+      opt.textContent = `${a.name} • ${a.account}`;
+      group.appendChild(opt);
+    });
+    accountSelect.appendChild(group);
   });
-
-  // ---------- list rows ----------
-  const listWrap = document.getElementById('listWrap');
-  accounts.forEach(a => {
-    const row = document.createElement('button');
-    row.className = 'row-card glass rounded-2xl px-4 py-3 flex items-center justify-between text-left';
-    row.dataset.id = a.id;
-    row.innerHTML = `
-      <div class="flex items-center gap-3 min-w-0">
-        <div class="w-9 h-9 rounded-xl bg-[#0A1F44] dark:bg-white/10 flex items-center justify-center shrink-0">
-          <span class="text-[11px] font-800 text-white dark:text-[#EAF0FB]">${initials(a.name)}</span>
-        </div>
-        <div class="min-w-0">
-          <p class="font-semibold text-sm truncate">${a.name}</p>
-          <p class="mono text-xs opacity-50 truncate">${a.account}</p>
-        </div>
-      </div>
-      <svg class="w-4 h-4 opacity-30 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
-    `;
-    row.addEventListener('click', () => select(a.id));
-    listWrap.appendChild(row);
-  });
+  accountSelect.addEventListener('change', (e) => select(e.target.value));
 
   // ---------- QR ----------
   const qrImage = document.getElementById('qrImage');
@@ -329,8 +299,7 @@
 
   function select(id){
     current = accounts.find(x => x.id === id);
-    document.querySelectorAll('#chipRow .chip').forEach(c => c.classList.toggle('active', c.dataset.id === id));
-    document.querySelectorAll('#listWrap .row-card').forEach(r => r.classList.toggle('selected', r.dataset.id === id));
+    accountSelect.value = id;
 
     selName.textContent = current.name;
     selAccount.textContent = current.account;
@@ -342,8 +311,6 @@
       selBadge.textContent = 'Ví';
     }
     renderQR(current);
-
-    document.querySelector(`#chipRow .chip[data-id="${id}"]`)?.scrollIntoView({ behavior:'smooth', inline:'center', block:'nearest' });
   }
 
   let debounce;
